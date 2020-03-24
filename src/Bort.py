@@ -21,6 +21,7 @@ def parse_settings_from_file(settings_filename):
 
 
 def to_extension(path):
+    path = path.replace("/", "\\")
     return path.strip().replace("\\", ".").replace(".py", "")
 
 
