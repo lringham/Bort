@@ -1,4 +1,4 @@
-# Bort
+# [Bort](https://www.youtube.com/watch?v=u8if4eU0ir4)
 A Discord bot.
 
 ## Setup
