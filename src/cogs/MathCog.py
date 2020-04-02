@@ -8,6 +8,8 @@ def setup(bot):
 
 
 class MathCog(Cog):
+    error_str = ""
+    
     # functions ------------------------------------------
     '''
     Check if an equation contains any invalid
@@ -35,7 +37,8 @@ class MathCog(Cog):
 
         for regexp in invalid_exps:
             if re.search(regexp[0], eqn_str):
-                return (False, regexp[1])
+                self.error_str = regexp[1]
+                return False
 
         # Make sure all brackets match properly
         bracket_count = 0
@@ -47,22 +50,26 @@ class MathCog(Cog):
                     bracket_count -= 1
             elif c == '(':
                 bracket_count += 1
-        return (bracket_count == 0, "Bracket mismatch")
+        if bracket_count != 0:
+            self.error_str = "Bracket mismatch"
+            return False
+        else:
+            return True
 
     '''
     Format the equation string for easier processing.
     '''
     def format_eqn(self, eqn_str):
-        eqn_str = "".join(eqn_str.split())  # Strip all whitespace
+        eqn_str = "".join(eqn_str.split())      # Strip all whitespace
         eqn_str = eqn_str.replace("--", "+")
-        eqn_str = eqn_str.replace("-", "+-")  # Avoid having to explicitly compute subtraction
+        eqn_str = eqn_str.replace("-", "+-")    # Avoid having to explicitly compute subtraction
+        eqn_str = eqn_str.replace("^+-", "^-")  # Fix bug introduced from eqn_str.replace("-", "+-")
         return eqn_str
 
     '''
     Recursively split on operator characters and evaluate the 
     sub-equations on each side.
     '''
-
     def evaluate_eqn_helper(self, eqn_str, op_list):
         if eqn_str == "":
             return 0
@@ -105,7 +112,6 @@ class MathCog(Cog):
     '''
     Evaluate an equation containing no brackets.
     '''
-
     def evaluate_eqn(self, eqn_str):
         op_list = ['+', '*', '/', '^']  # TODO: add modulo and factorial
         return self.evaluate_eqn_helper(eqn_str, op_list)
@@ -116,7 +122,6 @@ class MathCog(Cog):
     with the result. Then evaluate and return 
     the updated equation string.
     '''
-
     def evaluate_eqn_with_brackets(self, eqn_str):
         starts = []
         i = 0
@@ -141,11 +146,17 @@ class MathCog(Cog):
     '''
     def evaluate(self, eqn_str):
         eqn_str = self.format_eqn(eqn_str)
-        is_valid, error = self.valid_eqn(eqn_str)
-        if is_valid:
-            return self.evaluate_eqn_with_brackets(eqn_str)
-        else:
-            return "Invalid expression: " + error
+        is_valid = self.valid_eqn(eqn_str)
+        
+        try:
+            if is_valid:
+                return self.evaluate_eqn_with_brackets(eqn_str)
+            else:
+                return "Invalid expression: " + self.error_str
+        except ZeroDivisionError:
+            return "Invalid expression: Cannot divide by zero"
+        except ValueError:
+            return "Invalid expression: value error (Negative number in sqrt?)"
 
     # commands ------------------------------------------
     @commands.command(name='eval',
@@ -153,3 +164,4 @@ class MathCog(Cog):
     async def eval(self, ctx, *params):
         eqn = "".join(list(params))
         await ctx.send(self.evaluate(eqn))
+
